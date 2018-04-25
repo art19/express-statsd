@@ -12,7 +12,6 @@
     "connect",
     "express",
     "statsd",
-    "lynx",
     "monitoring"
   ],
   "repository": {
@@ -30,7 +29,7 @@
   ],
   "main": "lib/express-statsd",
   "dependencies": {
-    "lynx": "^0.2.0",
+    "node-statsd": "^0.1.1",
     "obj-extend": "~0.1.0"
   },
   "devDependencies": {

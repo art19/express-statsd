@@ -1,7 +1,7 @@
-var expect = require('chai').expect;
-var Lynx = require('lynx');
-var expressStatsd = require('../lib/express-statsd');
-var utils = require('./utils');
+var expect        = require('chai').expect,
+    expressStatsd = require('../lib/express-statsd'),
+    StatsD        = require('node-statsd'),
+    utils         = require('./utils');
 
 describe('An express server', function () {
   utils.runStatsd();
@@ -31,12 +31,12 @@ describe('An express server', function () {
       });
 
       it('should send response_time stat', function () {
-        expect(this.messages[1]).to.match(/response_time:\d\|ms/);
+        expect(this.messages[1]).to.match(/response_time:\d\|ms\|#un:ms/);
       });
 
       it('should send stats with no key', function () {
         expect(this.messages[0]).to.match(/^status_code\.200:\d\|c$/);
-        expect(this.messages[1]).to.match(/^response_time:\d|ms$/);
+        expect(this.messages[1]).to.match(/^response_time:\d\|ms\|#un:ms$/);
       });
     });
 
@@ -75,7 +75,7 @@ describe('An express server', function () {
 
       it('should send stats with altered key', function () {
         expect(this.messages[0]).to.match(/^my-key\.status_code\.200:\d\|c$/);
-        expect(this.messages[1]).to.match(/^my-key\.response_time:\d|ms$/);
+        expect(this.messages[1]).to.match(/^my-key\.response_time:\d\|ms\|#un:ms$/);
       });
     });
 
@@ -95,17 +95,17 @@ describe('An express server', function () {
 
       it('should read from that key', function () {
         expect(this.messages[0]).to.match(/^my-key\.status_code\.200:\d\|c$/);
-        expect(this.messages[1]).to.match(/^my-key\.response_time:\d|ms$/);
+        expect(this.messages[1]).to.match(/^my-key\.response_time:\d\|ms\|#un:ms$/);
       });
     });
 
-    describe('receiving a request with a custom lynx', function () {
+    describe('receiving a request with a custom client', function () {
       utils.runServer(1337, [
         function (req, res, next) {
           req.statsdKey = 'my-key';
           next();
         },
-        expressStatsd({client: new Lynx('127.0.0.1', 8125, {scope: 'my-scope'})}),
+        expressStatsd({ client: new StatsD({ host: '127.0.0.1', port: 8125, prefix: 'my-scope.' }) }),
         function (req, res) {
           res.send(200);
         }
@@ -113,9 +113,9 @@ describe('An express server', function () {
       utils.saveRequest('http://localhost:1337');
       utils.getStatsdMessages();
 
-      it('should use the custom lynx client', function () {
+      it('should use the custom client', function () {
         expect(this.messages[0]).to.match(/^my-scope\.my-key\.status_code\.200:\d\|c$/);
-        expect(this.messages[1]).to.match(/^my-scope\.my-key\.response_time:\d|ms$/);
+        expect(this.messages[1]).to.match(/^my-scope\.my-key\.response_time:\d\|ms\|#un:ms$/);
       });
     });
   });
